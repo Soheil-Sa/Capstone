@@ -20,6 +20,11 @@ plt.rcParams.update({'figure.figsize': (10, 7), 'figure.dpi': 120})
 df = pd.read_csv('/Users/soheilsaadatfar/Desktop/renewal_energy/renewable_energy_final.csv')
 
 
+###################################################################################
+#############################   Data  Preparation   ###############################
+###################################################################################
+
+
 
 #rename columns (variables)
 df_new= df.rename(columns={'GDP, PPP (current international $) [NY.GDP.MKTP.PP.CD]': 'GDP_curr_ppp',
@@ -90,8 +95,7 @@ df1= df1[~df1['Country_Name'].isin(['Ukraine'])]
 df1= df1[~df1['Time'].isin(['1990'])]
 df1= df1[~df1['Time'].isin(['1991'])]
 df1= df1[~df1['Time'].isin(['2015'])]
-
-df1.to_csv('/Users/soheilsaadatfar/Desktop/renewal_energy/renewable_energy_final_clean.csv')
+df1.head(10)
 
 
 
@@ -108,12 +112,20 @@ df1.dropna(axis=0,how='any',inplace=True)
 df_indx = df1.set_index(['Country_Name','Time'])
 df_stk= df_indx.unstack().stack()
 
+
 df_indx.loc['Canada']
 df_indx.head
 
 df_bc= df1.pivot(index='Time', columns='Country_Name')
 
-####### visualization ##############
+
+
+
+
+###############################################################################
+#############################   Visualization    ##############################
+###############################################################################
+
 
 #GDP_curr_ppp Graph
 gdpc = df1.pivot(index='Time', columns='Country_Name', values='GDP_curr_ppp')
@@ -137,8 +149,11 @@ ins_plot= sns.pairplot(df1)
 
 
 
+####################################################################################
+#############################   correlation matrix    ##############################
+####################################################################################
 
-##################### correlation matrix ########################
+
 
 
 corr = df_indx.corr()
@@ -168,7 +183,10 @@ sns.heatmap(
 
 
 
-#################### stationarity Test ###################
+###################################################################################
+#############################   Stationarity test   ###############################
+###################################################################################
+
 
 ###GDP_curr_ppp####
 x_df_gdp = df1['GDP_curr_ppp'].values
@@ -214,7 +232,7 @@ for key, value in result[4].items():
 
 
 #######Unemployment_total_percent stationarity#####
-x_df_unemp = df_time_asc['Unemployment_total_percent'].values
+x_df_unemp = df1['Unemployment_total_percent'].values
 result= adfuller(x_df_unemp, autolag="AIC")
 print(f'ADF Statistic: {result[0]}')
 print(f'n_lags: {result[1]}')
@@ -362,7 +380,12 @@ for key, value in result[4].items():
 
 
 
-##########cointegration test######
+
+##################################################################################
+############################   Cointegration test   ##############################
+##################################################################################
+
+
 ts.coint(df_indx.GDP_curr_ppp, df_indx.Unemployment_total_percent)
 
 #coin_result: Ho: No cointegration exist
@@ -404,12 +427,19 @@ ts.coint(df_indx.EG_intensity_ppp_GDP, df_indx.energy_use_per_1000GDP)
 ts.coint(df_indx.CO2_emission, df_indx['GDP_per_unit_energy_$'])
 ts.coint(df_indx.CO2_emission, df_indx.energy_use_per_1000GDP)
 ts.coint(df_indx['GDP_per_unit_energy_$'], df_indx.energy_use_per_1000GDP)
-#all but the following 3 are cointegraded 3 out 27,
-#indicating variables are cointegratd
-#REC &: unemployment, CO2 and GDP per unit of energy
 
 
 
+
+###################################################################################
+#######################    GDP & GFCF (Growth indicators)  ########################
+###################################################################################
+
+
+
+###################################################
+#############     World Analysis ##################
+###################################################
 
 
 
@@ -421,13 +451,13 @@ df_indep=df_indx[['REC_percent','Unemployment_total_percent', 'EG_intensity_ppp_
 
 
 
-####### GFCF FirstDifferenceOLS ########
+####### GFCF world FirstDifferenceOLS ########
 mod_GFCF_world= FirstDifferenceOLS(df_indx.GFCF_current, df_indep)
 GFCF_world_Diff = mod_GFCF_world.fit()
-print(GFCF_world)
+print(GFCF_world_Diff)
 
 
-####### GFCF PanelOLS #########
+####### GFCF world PanelOLS #########
 
 PanelOLS(df_indx.GFCF_current, df_indep,entity_effects=True, time_effects=True).fit(debiased=True)
 
@@ -447,4 +477,223 @@ PanelOLS(df_indx.GDP_curr_ppp, df_indep,entity_effects=True, time_effects=True).
 
 
 
-df_indx.unstack()
+
+###############################################
+#############    Developed   ##################
+###############################################
+
+
+####### Panel for Developed Countries #######
+df_developed = df_indx.loc[['Australia', 'Belgium', 'Canada','France', 'Germany',
+'Iceland', 'Japan', 'Luxembourg', 'Netherlands', 'Switzerland', 'United States', 'Sweden'
+]]
+
+
+Developed_indep = df_developed [['REC_percent','Unemployment_total_percent', 
+'EG_intensity_ppp_GDP', 'CO2_emission', 'energy_use_per_1000GDP'
+    ]]
+
+
+
+####### GFCF developed contries FirstDifferenceOLS ########
+mod_GFCF_developed= FirstDifferenceOLS(df_developed.GFCF_current, Developed_indep)
+GFCF_developed_Diff = mod_GFCF_developed.fit()
+print(GFCF_developed_Diff)
+
+
+####### GFCF developed Countries PanelOLS #########
+PanelOLS(df_developed.GFCF_current, Developed_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
+###### GDP_current Developed Countries FirstDifferenceOLS #####
+mod_GDP_Developed= FirstDifferenceOLS(df_developed.GDP_curr_ppp, Developed_indep)
+GDP_developed_Diff = mod_GDP_Developed.fit()
+print(GDP_developed_Diff)
+
+
+##### GDP Developed Developed Countries panelOLS ####
+PanelOLS(df_developed.GDP_curr_ppp, Developed_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
+
+###############################################
+#############    Developing   #################
+###############################################
+
+####### Panel For Developing Countries ######
+df_developing = df_indx.loc[['Argentina', 'Chile', 'Chine', 'Egypt, Arab Rep.', 'Israel', 
+'Malaysia', 'Mexico', 'Morocco', 'Singapore', 'Turkey', 'Uruguay', 'Russion Dederation']]
+ 
+
+Developing_indep = df_developing [['REC_percent','Unemployment_total_percent', 
+'EG_intensity_ppp_GDP', 'CO2_emission', 'energy_use_per_1000GDP'
+    ]]
+
+
+
+
+
+####### GFCF developing contries FirstDifferenceOLS ########
+mod_GFCF_developing= FirstDifferenceOLS(df_developing.GFCF_current, Developing_indep)
+GFCF_developing_Diff = mod_GFCF_developing.fit()
+print(GFCF_developing_Diff)
+
+
+####### GFCF developing Countries PanelOLS #########
+PanelOLS(df_developing.GFCF_current, Developing_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
+###### GDP_current Developing Countries FirstDifferenceOLS #####
+mod_GDP_Developing= FirstDifferenceOLS(df_developing.GDP_curr_ppp, Developing_indep)
+GDP_developing_Diff = mod_GDP_Developing.fit()
+print(GDP_developing_Diff)
+
+
+##### GDP world Developing Countries panelOLS ####
+PanelOLS(df_developing.GDP_curr_ppp, Developing_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
+#################################################################################
+##############################    Unemployment   ################################
+#################################################################################
+
+
+
+#############
+### World ###
+#############
+
+unemployment_world = df_indx
+
+
+unemployment_world_indep = unemployment_world [['REC_percent','GFCF_current', 
+'EG_intensity_ppp_GDP', 'CO2_emission', 'energy_use_per_1000GDP'
+    ]]
+
+####### Unemployment world contries FirstDifferenceOLS ########
+mod_unemployment_world= FirstDifferenceOLS(unemployment_world.Unemployment_total_percent, 
+unemployment_world_indep)
+unemployment_world_Diff = mod_unemployment_world.fit()
+print(unemployment_world_Diff)
+
+
+####### Unemployment world Countries PanelOLS #########
+PanelOLS(unemployment_world.Unemployment_total_percent, unemployment_world_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
+
+
+
+
+
+#################
+### Developed ###
+#################
+
+unemployment_developed = df_indx.loc[['Australia', 'Belgium', 'Canada','France', 'Germany',
+'Iceland', 'Japan', 'Luxembourg', 'Netherlands', 'Switzerland', 'United States', 'Sweden', 'Belguim'
+]]
+
+
+unemployment_Developed_indep = unemployment_developed [['REC_percent','GFCF_current', 
+'EG_intensity_ppp_GDP', 'CO2_emission', 'energy_use_per_1000GDP'
+    ]]
+
+
+
+
+####### Unemployment developed contries FirstDifferenceOLS ########
+mod_unemployment_developed= FirstDifferenceOLS(unemployment_developed.Unemployment_total_percent, 
+unemployment_Developed_indep)
+unemployment_developed_Diff = mod_unemployment_developed.fit()
+print(unemployment_developed_Diff)
+
+
+####### Unemployment developed Countries PanelOLS #########
+PanelOLS(unemployment_developed.Unemployment_total_percent, unemployment_Developed_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
+
+
+####################
+### Developeding ###
+####################
+
+
+unemployment_developing = df_indx.loc[['Argentina', 'Chile', 'Chine', 'Egypt, Arab Rep.', 'Israel', 
+'Malaysia', 'Mexico', 'Morocco', 'Singapore', 'Turkey', 'Uruguay', 'Russion Dederation']]
+ 
+
+unemployment_Developing_indep = df_developing [['REC_percent','GFCF_current', 
+'EG_intensity_ppp_GDP', 'CO2_emission', 'energy_use_per_1000GDP'
+    ]]
+
+
+####### Unemployment developing contries FirstDifferenceOLS ########
+mod_unemployment_developing= FirstDifferenceOLS(unemployment_developing.Unemployment_total_percent, 
+unemployment_Developing_indep)
+unemployment_developing_Diff = mod_unemployment_developing.fit()
+print(unemployment_developing_Diff)
+
+
+####### Unemployment developing Countries PanelOLS #########
+PanelOLS(unemployment_developing.Unemployment_total_percent, unemployment_Developing_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
+
+
+
+
+
+
+
+
+################################################################################
+##################################   CANADA   ##################################
+################################################################################
+
+Canada_db = df_indx.loc[[ 'Belgium', 'Canada','France', 'Germany',
+'Iceland', 'Japan', 'Luxembourg', 'Netherlands', 'Switzerland', 'United States', 'Sweden', 'Belguim'
+]]
+
+Canada_indep = Canada_db [['REC_percent','Unemployment_total_percent', 
+'EG_intensity_ppp_GDP', 'CO2_emission', 'energy_use_per_1000GDP'
+    ]]
+
+Canada_Unemployment_indep = Canada_db [['REC_percent','GFCF_current', 
+'EG_intensity_ppp_GDP', 'CO2_emission', 'energy_use_per_1000GDP'
+    ]]
+
+
+
+####### GFCF Canada FirstDiffeneceOLS ########
+mod_Canada_GFCF= FirstDifferenceOLS(Canada_db.GFCF_current, 
+Canada_indep)
+Canada_GFCF_Diff = mod_Canada_GFCF.fit()
+print(Canada_GFCF_Diff)
+
+
+####### GFCF Canada PanelOLS #########
+PanelOLS(Canada_db.GFCF_current, Canada_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
+
+####### Canada Unemployment   FirstDifferenceOLS ########
+mod_Canada_unemployment= FirstDifferenceOLS(Canada_db.Unemployment_total_percent, Canada_Unemployment_indep)
+Canada_unemployment_Diff = mod_Canada_unemployment.fit()
+print(Canada_unemployment_Diff)
+
+
+####### Canada Unemployment   PanelOLS #########
+PanelOLS(Canada_db.Unemployment_total_percent, Canada_Unemployment_indep
+,entity_effects=True, time_effects=True).fit(debiased=True)
+
+
