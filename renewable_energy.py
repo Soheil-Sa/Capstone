@@ -475,7 +475,7 @@ print(GDP_world_Diff)
 PanelOLS(df_indx.GDP_curr_ppp, df_indep,entity_effects=True, time_effects=True).fit(debiased=True)
 
 
-
+df_indx.head(40)
 
 ###############################################
 #############    Developed   ##################
@@ -570,7 +570,7 @@ PanelOLS(df_developing.GDP_curr_ppp, Developing_indep
 #############
 
 unemployment_world = df_indx
-
+df_indx.head(10)
 
 unemployment_world_indep = unemployment_world [['REC_percent','GFCF_current', 
 'EG_intensity_ppp_GDP', 'CO2_emission', 'GDP_per_unit_energy_$'
@@ -664,8 +664,12 @@ PanelOLS(unemployment_developing.Unemployment_total_percent, unemployment_Develo
 
 Canada_db = df_indx.loc[['Canada']]
 
-Canada_indep = Canada_db [['REC_percent','Unemployment_total_percent', 
+Canada_indep_GFCG = Canada_db [['REC_percent','Unemployment_total_percent', 
 'EG_intensity_ppp_GDP', 'CO2_emission', 'GDP_per_unit_energy_$'
+    ]]
+
+Canada_indep_GDP = Canada_db [['REC_percent','Unemployment_total_percent', 
+'EG_intensity_ppp_GDP', 'CO2_emission', 'energy_use_per_1000GDP'
     ]]
 
 Canada_Unemployment_indep = Canada_db [['REC_percent','GFCF_current', 
@@ -681,6 +685,22 @@ Canada_indep)
 Canada_GFCF_Diff = mod_Canada_GFCF.fit()
 print(Canada_GFCF_Diff)
 
+####### GFCF Canada PanelOlS #######
+PanelOLS(Canada_db.GFCF_current, 
+Canada_indep_GFCG
+).fit(debiased=True)
+
+
+####### GDP Canada FirstDiffeneceOLS ########
+mod_Canada_GDP= FirstDifferenceOLS(Canada_db.GDP_curr_ppp, 
+Canada_indep)
+Canada_GDP_Diff = mod_Canada_GDP.fit()
+print(Canada_GDP_Diff)
+
+####### GDP Canada PanelOlS #######
+PanelOLS(Canada_db.GDP_curr_ppp, 
+Canada_indep_GDP
+).fit(debiased=True)
 
 
 ####### Canada Unemployment   FirstDifferenceOLS ########
@@ -689,4 +709,8 @@ Canada_unemployment_Diff = mod_Canada_unemployment.fit()
 print(Canada_unemployment_Diff)
 
 
-df_indx.unstack()
+
+####### Canada Unemployment   PanelOLS ########
+PanelOLS(Canada_db.Unemployment_total_percent, 
+Canada_Unemployment_indep
+).fit(debiased=True)
